@@ -5,6 +5,7 @@
    [guestbook.routes.home :refer [home-routes]]
    [guestbook.routes.services :refer [service-routes]]
    [reitit.ring :as ring]
+   [reitit.ring.middleware.dev :as dev]
    [ring.middleware.content-type :refer [wrap-content-type]]
    [ring.middleware.webjars :refer [wrap-webjars]]
    [guestbook.env :refer [defaults]]
@@ -19,7 +20,8 @@
   (ring/ring-handler
    (ring/router
     [(home-routes)
-     (service-routes)])
+     (service-routes)]
+    #_{:reitit.middleware/transform dev/print-request-diffs})
    (ring/routes
     (ring/create-resource-handler
      {:path "/"})
