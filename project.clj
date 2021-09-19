@@ -36,11 +36,28 @@
   
   :source-paths ["src/clj"]
   :test-paths ["test/clj"]
-  :resource-paths ["resources"]
+  :resource-paths ["resources" "target/cljsbuild"]
   :target-path "target/%s/"
   :main ^:skip-aot guestbook.core
 
-  :plugins [] 
+  :plugins [[lein-cljsbuild "1.1.8"]]
+
+  :cljsbuild
+  {:builds
+   {:app {:source-paths ["src/cljs"]
+          :compiler {:output-to "target/cljsbuild/public/js/app.js"
+                     :output-dir "target/cljsbuild/public/js/out"
+                     :main "guestbook.core"
+                     :asset-path "/js/out"
+                     :optimizations :none
+                     :source-map true
+                     :pretty-print true}}}}
+
+  :clean-targets
+  ^{:protect false}
+  [:target-path
+   [:cljsbuild :builds :app :compiler :output-dir]
+   [:cljsbuild :builds :app :compiler :output-to]]
 
   :profiles
   {:uberjar {:omit-source true
@@ -54,6 +71,9 @@
 
    :project/dev  {:jvm-opts ["-Dconf=dev-config.edn" ]
                   :dependencies [[pjstadig/humane-test-output "0.10.0"]
+                                 [org.clojure/clojurescript "1.10.764" :scope "provided"]
+                                 [reagent "1.0.0"]
+                                 [cljs-ajax "0.8.1"]
                                  [prone "2020-01-17"]
                                  [ring/ring-devel "1.8.2"]
                                  [ring/ring-mock "0.4.0"]]
