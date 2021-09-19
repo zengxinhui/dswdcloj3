@@ -30,11 +30,13 @@
 
 (defn save-message! [{:keys [params]}]
   (if-let [errors (validate-message params)]
-    (-> (response/found "/")
-        (assoc :flash (assoc params :errors errors)))
-    (do
+    (response/bad-request {:errors errors})
+    (try
       (db/save-message! params)
-      (response/found "/"))))
+      (response/ok {:status :ok})
+      (catch Exception e
+        (response/internal-server-error
+         {:errors {:server-error ["Failed to save message!"]}})))))
 
 (defn about-page [request]
   (layout/render request "about.html"))
