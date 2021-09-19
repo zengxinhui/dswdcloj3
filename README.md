@@ -1,21 +1,6 @@
 # guestbook
 
-generated using Luminus version "3.91"
+Step by step progress of code update in this great book to build a guestbook in Clojure:
+https://pragprog.com/titles/dswdcloj3/web-development-with-clojure-third-edition/
 
-FIXME
-
-## Prerequisites
-
-You will need [Leiningen][1] 2.0 or above installed.
-
-[1]: https://github.com/technomancy/leiningen
-
-## Running
-
-To start a web server for the application, run:
-
-    lein run 
-
-## License
-
-Copyright © 2021 FIXME
+Use branch to see per chapter update to code.
