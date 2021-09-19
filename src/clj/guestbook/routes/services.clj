@@ -1,12 +1,21 @@
 (ns guestbook.routes.services
   (:require
+   [reitit.swagger :as swagger]
+   [reitit.swagger-ui :as swagger-ui]
    [guestbook.messages :as msg]
    [guestbook.middleware :as middleware]
    [ring.util.http-response :as response]))
 
 (defn service-routes []
   ["/api"
-   {:middleware [middleware/wrap-formats]}
+   {:middleware [middleware/wrap-formats]
+    :swagger {:id ::api}}
+   ["" {:no-doc true}
+    ["/swagger.json"
+     {:get (swagger/create-swagger-handler)}]
+    ["/swagger-ui*"
+     {:get (swagger-ui/create-swagger-ui-handler
+            {:url "/api/swagger.json"})}]]
    ["/messages"
     {:get
      (fn [_]
