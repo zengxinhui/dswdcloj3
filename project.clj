@@ -73,6 +73,7 @@
                   :dependencies [[pjstadig/humane-test-output "0.10.0"]
                                  [org.clojure/clojurescript "1.10.764" :scope "provided"]
                                  [reagent "1.0.0"]
+                                 [re-frame "1.1.2"]
                                  [cljs-ajax "0.8.1"]
                                  [prone "2020-01-17"]
                                  [ring/ring-devel "1.8.2"]
