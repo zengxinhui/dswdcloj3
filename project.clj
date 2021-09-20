@@ -19,8 +19,15 @@
                  [metosin/muuntaja "0.6.7"]
                  [metosin/reitit "0.5.10"]
                  [metosin/ring-http-response "0.9.1"]
+                 [com.google.javascript/closure-compiler-unshaded "v20200830" :scope "provided"]
+                 [org.clojure/google-closure-library "0.0-20191016-6ae1f72f" :scope "provided"]
+                 [thheller/shadow-cljs "2.11.14" :scope "provided"]
+                 [org.clojure/clojurescript "1.10.764" :scope "provided"]
+                 [reagent "1.0.0"]
+                 [re-frame "1.1.2"]
                  [mount "0.1.16"]
                  [nrepl "0.8.3"]
+                 [cljs-ajax "0.8.1"]
                  [org.clojure/clojure "1.10.1"]
                  [org.clojure/tools.cli "1.0.194"]
                  [org.clojure/tools.logging "1.1.0"]
@@ -47,7 +54,9 @@
   {:uberjar {:omit-source true
              :aot :all
              :uberjar-name "guestbook.jar"
-             :source-paths ["env/prod/clj" ]
+             :source-paths ["env/prod/clj" "env/prod/cljc" "env/prod/cljs"]
+             :prep-tasks ["compile"
+                          ["run" "-m" "shadow.cljs.devtools.cli" "release" "app"]]
              :resource-paths ["env/prod/resources"]}
 
    :dev           [:project/dev :profiles/dev]
@@ -55,13 +64,6 @@
 
    :project/dev  {:jvm-opts ["-Dconf=dev-config.edn" ]
                   :dependencies [[pjstadig/humane-test-output "0.10.0"]
-                                 [org.clojure/clojurescript "1.10.764" :scope "provided"]
-                                 [reagent "1.0.0"]
-                                 [re-frame "1.1.2"]
-                                 [cljs-ajax "0.8.1"]
-                                 [com.google.javascript/closure-compiler-unshaded "v20200830" :scope "provided"]
-                                 [org.clojure/google-closure-library "0.0-20191016-6ae1f72f" :scope "provided"]
-                                 [thheller/shadow-cljs "2.11.14" :scope "provided"]
                                  [day8.re-frame/re-frame-10x "0.7.0"]
                                  [binaryage/devtools "1.0.2"]
                                  [prone "2020-01-17"]
