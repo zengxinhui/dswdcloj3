@@ -62,6 +62,7 @@
                                  [com.google.javascript/closure-compiler-unshaded "v20200830" :scope "provided"]
                                  [org.clojure/google-closure-library "0.0-20191016-6ae1f72f" :scope "provided"]
                                  [thheller/shadow-cljs "2.11.14" :scope "provided"]
+                                 [day8.re-frame/re-frame-10x "0.7.0"]
                                  [binaryage/devtools "1.0.2"]
                                  [prone "2020-01-17"]
                                  [ring/ring-devel "1.8.2"]
