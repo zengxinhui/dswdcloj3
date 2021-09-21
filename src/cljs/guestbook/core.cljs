@@ -9,7 +9,8 @@
 (rf/reg-event-fx
  :app/initialize
  (fn [_ _]
-   {:db {:messages/loading? true}}))
+   {:db {:messages/loading? true}
+    :dispatch [:messages/load]}))
 
 (rf/reg-sub
  :messages/loading?
@@ -22,6 +23,14 @@
    (-> db
        (assoc :messages/loading? false
               :messages/list messages))))
+
+(rf/reg-event-fx
+ :messages/load
+ (fn [{:keys [db]} _]
+   (GET "/api/messages"
+        {:headers {"Accept" "application/transit+json"}
+         :handler #(rf/dispatch [:messages/set (:messages %)])})
+   {:db (assoc db :messages/loading? true)}))
 
 (rf/reg-sub
  :messages/list
@@ -181,5 +190,4 @@
 (defn init! []
   (.log js/console "Initializing App...")
   (rf/dispatch [:app/initialize])
-  (get-messages)
   (mount-components))
