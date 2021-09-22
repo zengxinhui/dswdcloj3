@@ -11,11 +11,11 @@
           {:type :auto
            :wrap-recv-evs? false}))
 
-(defn send! [message]
+(defn send! [& args]
   (if-let [send-fn (:send-fn @socket)]
-    (send-fn message)
+    (apply send-fn args)
     (throw (ex-info "Couldn't send message, channel isn't open!"
-                    {:message message}))))
+                    {:message (first args)}))))
 
 (defmulti handle-message
   (fn [{:keys [id]} _]

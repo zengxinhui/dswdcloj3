@@ -107,7 +107,14 @@
 (rf/reg-event-fx
  :message/send!
  (fn [{:keys [db]} [_ fields]]
-   (ws/send! [:message/create! fields])
+   (ws/send!
+    [:message/create! fields]
+    10000
+    (fn [{:keys [success errors] :as response}]
+      (.log js/console "Called Back: " (pr-str response))
+      (if success
+        (rf/dispatch [:form/clear-fields])
+        (rf/dispatch [:form/set-server-errors errors]))))
    {:db (dissoc db :form/server-errors)}))
 
 (defn handle-response! [response]
