@@ -28,6 +28,7 @@
                  [mount "0.1.16"]
                  [nrepl "0.8.3"]
                  [cljs-ajax "0.8.1"]
+                 [com.taoensso/sente "1.16.0"]
                  [org.clojure/clojure "1.10.1"]
                  [org.clojure/tools.cli "1.0.194"]
                  [org.clojure/tools.logging "1.1.0"]
