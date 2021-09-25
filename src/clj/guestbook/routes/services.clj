@@ -8,6 +8,8 @@
    [reitit.ring.middleware.exception :as exception]
    [reitit.ring.middleware.multipart :as multipart]
    [reitit.ring.middleware.parameters :as parameters]
+   [spec-tools.data-spec :as ds]
+   [guestbook.auth :as auth]
    [guestbook.messages :as msg]
    [guestbook.middleware :as middleware]
    [guestbook.middleware.formats :as formats]
@@ -40,6 +42,88 @@
     ["/swagger-ui*"
      {:get (swagger-ui/create-swagger-ui-handler
             {:url "/api/swagger.json"})}]]
+   ["/session"
+    {:get
+     {:responses
+      {200
+       {:body
+        {:session
+         {:identity
+          (ds/maybe
+           {:login string?
+            :created_at inst?})}}}}
+      :handler
+      (fn [{{:keys [identity]} :session}]
+        (response/ok {:session
+                      {:identity
+                       (not-empty
+                        (select-keys identity [:login :created_at]))}}))}}]
+   ["/login"
+    {:post {:parameters
+            {:body
+             {:login string?
+              :password string?}}
+            :responses
+            {200
+             {:body
+              {:identity
+               {:login string?
+                :created_at inst?}}}
+             401
+             {:body
+              {:message string?}}}
+            :handler
+            (fn [{{{:keys [login password]} :body} :parameters
+                  session :session}]
+              (if-some [user (auth/authenticate-user login password)]
+                (->
+                 (response/ok
+                  {:identity user})
+                 (assoc :session (assoc session
+                                        :identity
+                                        user)))
+                (response/unauthorized
+                 {:message "Incorrect login or password."})))}}]
+   ["/register"
+    {:post {:parameters
+            {:body
+             {:login string?
+              :password string?
+              :confirm string?}}
+            :responses
+            {200
+             {:body
+              {:message string?}}
+             400
+             {:body
+              {:message string?}}
+             409
+             {:body
+              {:message string?}}}
+            :handler
+            (fn [{{{:keys [login password confirm]} :body} :parameters}]
+              (if-not (= password confirm)
+                (response/bad-request
+                 {:message
+                  "Password and Confirm do not match."})
+                (try
+                  (auth/create-user! login password)
+                  (response/ok
+                   {:message
+                    "User registration successful. Please log in."})
+                  (catch clojure.lang.ExceptionInfo e
+                    (if (= (:guestbook/error-id (ex-data e))
+                           ::auth/duplicate-user)
+                      (response/conflict
+                       {:message
+                        "Registration failed! User with login already exists!"})
+                      (throw e))))))}}]
+   ["/logout"
+    {:post {:handler
+            (fn [_]
+              (->
+               (response/ok)
+               (assoc :session nil)))}}]
    ["/messages"
     {:get
      {:responses

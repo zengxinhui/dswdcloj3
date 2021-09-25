@@ -15,6 +15,7 @@
                  [luminus-transit "0.1.2"]
                  [luminus/ring-ttl-session "0.3.3"]
                  [org.postgresql/postgresql "42.2.18"]
+                 [buddy "2.0.0"]
                  [markdown-clj "1.10.5"]
                  [metosin/muuntaja "0.6.7"]
                  [metosin/reitit "0.5.10"]
