@@ -4,6 +4,7 @@
             [mount.core :refer [defstate]]
             [taoensso.sente :as sente]
             [taoensso.sente.server-adapters.http-kit :refer [get-sch-adapter]]
+            [guestbook.session :as session]
             [guestbook.messages :as msg]))
 
 (defstate socket
@@ -25,10 +26,9 @@
    :id id})
 
 (defmethod handle-message :message/create!
-  [{:keys [?data uid] :as message}]
+  [{:keys [?data uid session] :as message}]
   (let [response (try
-                   (msg/save-message! ?data)
-                   (assoc ?data :timestamp (java.util.Date.))
+                   (msg/save-message! (:identity session) ?data)
                    (catch Exception e
                      (let [{id :guestbook/error-id
                             errors :errors} (ex-data e)]
@@ -47,11 +47,15 @@
           (send! uid [:message/add response]))
         {:success true}))))
 
-(defn receive-message! [{:keys [id ?reply-fn]
+(defn receive-message! [{:keys [id ?reply-fn ring-req]
                          :as message}]
   (log/debug "Got message with id: " id)
-  (let [reply-fn (or ?reply-fn (fn [_]))]
-    (when-some [response (handle-message message)]
+  (let [reply-fn (or ?reply-fn (fn [_]))
+        session (session/read-session ring-req)
+        response (-> message
+                     (assoc :session session)
+                     handle-message)]
+    (when response
       (reply-fn response))))
 
 (defstate channel-router

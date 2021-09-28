@@ -353,12 +353,18 @@
 
 (defn message-list [messages]
   [:ul.messages
-   (for [{:keys [timestamp message name]} @messages]
+   (for [{:keys [timestamp message name author]} @messages]
      ^{:key timestamp}
      [:li
       [:time (.toLocaleString timestamp)]
       [:p message]
-      [:p " - " name]])])
+      [:p " - " name
+       ;; Add the author (e.g. <@username>)
+       " <"
+       (if author
+         (str "@" author)
+         [:span.is-italic "account not found"])
+       ">"]])])
 
 (defn errors-component [id]
   (when-let [error @(rf/subscribe [:form/error id])]
