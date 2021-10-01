@@ -60,7 +60,12 @@
          [:div.navbar-start
           [:a.navbar-item
            {:href "/"}
-           "Home"]]
+           "Home"]
+          (when (= @(rf/subscribe [:auth/user-state]) :authenticated)
+            [:a.navbar-item
+             {:href (rtfe/href :guestbook.routes.app/author
+                               {:user (:login @(rf/subscribe [:auth/user]))})}
+             "My Posts"])]
          [:div.navbar-end
           [:div.navbar-item
            (case @(rf/subscribe [:auth/user-state])
