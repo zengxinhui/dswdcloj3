@@ -4,6 +4,9 @@
    [guestbook.messages :as messages]
    [guestbook.auth :as auth]))
 
+(def home-controllers
+  [{:start (fn [_] (rf/dispatch [:messages/load]))}])
+
 (defn home [_]
   (let [messages (rf/subscribe [:messages/list])]
     (fn []

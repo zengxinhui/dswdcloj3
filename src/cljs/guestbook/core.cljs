@@ -11,14 +11,14 @@
             [mount.core :as mount]
             [reitit.coercion.spec :as reitit-spec]
             [reitit.frontend :as rtf]
+            [reitit.frontend.controllers :as rtfc]
             [reitit.frontend.easy :as rtfe]))
 
 (rf/reg-event-fx
  :app/initialize
  (fn [_ _]
-   {:db {:messages/loading? true
-         :session/loading? true}
-    :dispatch-n [[:session/load] [:messages/load]]}))
+   {:db {:session/loading? true}
+    :dispatch [:session/load]}))
 
 (rf/reg-event-db
  :router/navigated
@@ -92,7 +92,12 @@
    router
    (fn [new-match]
      (when new-match
-       (rf/dispatch [:router/navigated new-match])))
+       (let [{controllers :controllers} @(rf/subscribe [:router/current-route])
+             new-match-with-controllers
+             (assoc new-match
+                    :controllers
+                    (rtfc/apply-controllers controllers new-match))]
+         (rf/dispatch [:router/navigated new-match-with-controllers]))))
    {:use-fragment false}))
 
 (defn ^:dev/after-load mount-components []

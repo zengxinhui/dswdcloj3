@@ -154,7 +154,7 @@
  (fn [{:keys [db]} [_ author]]
    {:db (-> db
             (assoc :messages/loading? true
-                   :messages/filter nil #_{:author author}))
+                   :messages/filter {:author author}))
     :ajax/get {:url (str "/api/messages/by/" author)
                :success-path [:messages]
                :success-event [:messages/set]}}))
