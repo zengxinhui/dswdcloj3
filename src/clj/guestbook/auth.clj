@@ -25,6 +25,8 @@
 
 (def roles
   {:message/create! #{:authenticated}
+   :media/get #{:any}
+   :media/upload #{:authenticated}
    :author/get #{:any}
    :account/set-profile! #{:authenticated}
    :auth/login #{:any}
