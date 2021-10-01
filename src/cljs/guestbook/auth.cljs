@@ -1,6 +1,7 @@
 (ns guestbook.auth
   (:require
    [clojure.string :as string]
+   [reitit.frontend.easy :as rtfe]
    [reagent.core :as r]
    [re-frame.core :as rf]
    [guestbook.modals :as m]
@@ -110,7 +111,8 @@
    "Log Out"])
 
 (defn nameplate [{:keys [login]}]
-  [:button.button.is-primary
+  [:a.button.is-primary
+   {:href (rtfe/href :guestbook.routes.app/profile)}
    login])
 
 (defn register-button []
