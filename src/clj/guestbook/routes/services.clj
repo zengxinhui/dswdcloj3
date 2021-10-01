@@ -10,6 +10,7 @@
    [reitit.ring.middleware.parameters :as parameters]
    [spec-tools.data-spec :as ds]
    [guestbook.auth :as auth]
+   [guestbook.author :as author]
    [guestbook.messages :as msg]
    [guestbook.middleware :as middleware]
    [guestbook.middleware.formats :as formats]
@@ -170,6 +171,42 @@
        :handler
        (fn [{{{:keys [author]} :path} :parameters}]
          (response/ok (msg/messages-by-author author)))}}]]
+   ["/author/:login"
+    {::auth/roles (auth/roles :author/get)
+     :get {:parameters
+           {:path {:login string?}}
+           :responses
+           {200
+            {:body map?}
+            500
+            {:errors map?}}
+           :handler
+           (fn [{{{:keys [login]} :path} :parameters}]
+             (response/ok (author/get-author login)))}}]
+   ["/my-account"
+    ["/set-profile"
+     {::auth/roles (auth/roles :account/set-profile!)
+      :post {:parameters
+             {:body
+              {:profile map?}}
+             :responses
+             {200
+              {:body map?}
+              500
+              {:errors map?}}
+             :handler
+             (fn [{{{:keys [profile]} :body} :parameters
+                   {:keys [identity] :as session} :session}]
+               (try
+                 (let [identity
+                       (author/set-author-profile (:login identity) profile)]
+                   (-> (response/ok {:success true})
+                       (update :session assoc :identity identity)))
+                 (catch Exception e
+                   (log/error e)
+                   (response/internal-server-error
+                    {:errors {:server-error
+                              ["Failed to set profile!"]}}))))}}]]
    ["/message"
     {::auth/roles (auth/roles :message/create!)
      :post
