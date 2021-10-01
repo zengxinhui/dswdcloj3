@@ -8,7 +8,9 @@
 (rf/reg-event-fx
  :messages/load
  (fn [{:keys [db]} _]
-   {:db (assoc db :messages/loading? true)
+   {:db (assoc db
+               :messages/loading? true
+               :messages/filter nil)
     :ajax/get {:url "/api/messages"
                :success-path [:messages]
                :success-event [:messages/set]}}))
@@ -53,10 +55,25 @@
          [:span.is-italic "account not found"])
        ">"]])])
 
+(defn add-message? [filter-map msg]
+  (every?
+   (fn [[k matcher]]
+     (let [v (get msg k)]
+       (cond
+         (set? matcher)
+         (matcher v)
+         (fn? matcher)
+         (matcher v)
+         :else
+         (= matcher v))))
+   filter-map))
+
 (rf/reg-event-db
  :message/add
  (fn [db [_ message]]
-   (update db :messages/list conj message)))
+   (if (add-message? (:messages/filter db) message)
+     (update db :messages/list conj message)
+     db)))
 
 (rf/reg-event-db
  :form/set-field
@@ -131,6 +148,16 @@
     :ws/send! {:message [:message/create! fields]
                :timeout 10000
                :callback-event [:message/send!-called-back]}}))
+
+(rf/reg-event-fx
+ :messages/load-by-author
+ (fn [{:keys [db]} [_ author]]
+   {:db (-> db
+            (assoc :messages/loading? true
+                   :messages/filter nil #_{:author author}))
+    :ajax/get {:url (str "/api/messages/by/" author)
+               :success-path [:messages]
+               :success-event [:messages/set]}}))
 
 (defn errors-component [id & [message]]
   (when-let [error @(rf/subscribe [:form/error id])]

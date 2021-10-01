@@ -105,5 +105,5 @@
 (defn init! []
   (.log js/console "Initializing App...")
   (mount/start)
-  (rf/dispatch [:app/initialize])
+  (rf/dispatch-sync [:app/initialize])
   (mount-components))
