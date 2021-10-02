@@ -170,7 +170,9 @@
              [{:id pos-int?
                :name string?
                :message string?
-               :timestamp inst?}]}}}
+               :timestamp inst?
+               :author (ds/maybe string?)
+               :avatar (ds/maybe string?)}]}}}
           :handler
           (fn [_]
             (response/ok (msg/message-list)))}}]
@@ -184,7 +186,9 @@
           [{:id pos-int?
             :name string?
             :message string?
-            :timestamp inst?}]}}}
+            :timestamp inst?
+            :author (ds/maybe string?)
+            :avatar (ds/maybe string?)}]}}}
        :handler
        (fn [{{{:keys [author]} :path} :parameters}]
          (response/ok (msg/messages-by-author author)))}}]]
