@@ -183,15 +183,15 @@
                                    (string/join error))]))
 
 (defn message-form []
+  ;; Copied from guestbook.core...
+                                        ;
   [:div
    [errors-component :server-error]
+   [errors-component :unauthorized "Please log in before posting."]
    [:div.field
     [:label.label {:for :name} "Name"]
-    [errors-component :name]
-    [errors-component :unauthorized "Please log in before posting."]
-    [text-input {:attrs {:name :name}
-                 :value (rf/subscribe [:form/field :name])
-                 :on-save #(rf/dispatch [:form/set-field :name %])}]]
+    (let [{:keys [login profile]} @(rf/subscribe [:auth/user])]
+      (:display-name profile login))]
    [:div.field
     [:label.label {:for :message} "Message"]
     [errors-component :message]

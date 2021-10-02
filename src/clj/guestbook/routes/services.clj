@@ -286,8 +286,7 @@
      :post
      {:parameters
       {:body ;; Data Spec for Request body parameters
-       {:name string?
-        :message string?}}
+       {:message string?}}
       :responses
       {200
        {:body map?}
