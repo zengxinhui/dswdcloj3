@@ -2,6 +2,7 @@
   (:require
    [guestbook.components :refer [text-input textarea-input image image-uploader]]
    [reagent.core :as r]
+   [ajax.core :as ajax]
    [re-frame.core :as rf]))
 
 (rf/reg-sub
@@ -96,6 +97,79 @@
              #(dissoc % k)
              #(assoc % k v)))))
 
+(defn change-password []
+  (let [fields (r/atom {})
+        errors (r/atom {})
+        success (r/atom {})]
+    (letfn [;;helper component
+            (password-field [id label]
+              (r/with-let [v (r/cursor fields [id])
+                           e (r/cursor errors [id])]
+                [:div.field
+                 [:label.label {:for id} label]
+                 [:input.input {:id id
+                                :type :password
+                                :value @v
+                                :on-change #(reset! v (.. % -target -value))}]
+                 (when-let [message @e]
+                   [:p.help.is-danger message])]))
+            ;;helper function
+            (change-password! []
+              (let [{:keys [new-password
+                            confirm-password]
+                     :as params} @fields]
+                (if (not= new-password confirm-password)
+                  (reset! errors
+                          {:new-password "New Password and Confirm must match!"
+                           :confirm-password "New Password and Confirm must match!"})
+                  (ajax/POST "/api/my-account/change-password"
+                             {:params params
+                              :handler
+                              (fn [_]
+                                ;; Display success message for 5 seconds
+                                (swap! success
+                                       (fn [{:keys
+                                             [timeout]}]
+                                         (when timeout
+                                           (js/clearTimeout timeout))
+                                         {:message "Password change successful!"
+                                          :timeout (js/setTimeout
+                                                    (fn []
+                                                      (reset! success {}))
+                                                    5000)}))
+                                (reset! fields {})
+                                (reset! errors {}))
+                              :error-handler
+                              (fn [{r :response}]
+                                (println r)
+                                (reset!
+                                 errors
+                                 (case (:error r)
+                                   :incorrect-password
+                                   {:old-password (:message r)}
+                                   :mismatch
+                                   {:new-password (:message r)
+                                    :confirm-password (:message r)}
+                                   ;; ELSE
+                                   {:server
+                                    "Unknown Server Error. Please try again!"})))}))))]
+      (fn []
+        [:<>
+         [:h3 "Change Password"]
+         [password-field :old-password "Current Password"]
+         [password-field :new-password "New Password"]
+         [password-field :confirm-password "New Password (confirm)"]
+         [:div.field
+          (when-let [message (:server @errors)]
+            [:p.message.is-danger message])
+          (when-let [message (:message @success)]
+            [:p.message.is-success message])
+          [:button.button
+           {:on-click
+            (fn [_]
+              (change-password!))}
+           "Change Password"]]]))))
+
 (def profile-controllers
   [{:start (fn [_] (println "Entering Profile Page"))
     :stop (fn [_] (println "Leaving Profile Page"))}])
@@ -165,12 +239,18 @@
       {:disabled (not @(rf/subscribe [:profile/field-changed? k]))
        :on-click #(rf/dispatch [:profile/save-change k nil])} "Reset"]]))
 
+(defn account-settings []
+  [:<>
+   [:h2 "Account Settings"]
+   [change-password]])
+
 (defn profile [_]
-  (if-let [{:keys [login created_at profile]} @(rf/subscribe [:auth/user])]
+  (if-let [{:keys [login created_at]} @(rf/subscribe [:auth/user])]
     [:div.content
      [:h1 "My Account"
       (str " <@" login ">")]
      [:p (str "Joined: " (.toString created_at))]
+     [:h2 "My Profile"]
      [display-name]
      [bio]
      [avatar]
@@ -188,7 +268,8 @@
                         @(rf/subscribe [:profile/profile])
                         @(rf/subscribe [:profile/media])])
          :disabled disabled?}
-        "Update Profile"])]
+        "Update Profile"])
+     [account-settings]]
     [:div.content
      [:div {:style {:width "100%"}}
       [:progress.progress.is-dark {:max 100} "30%"]]]))

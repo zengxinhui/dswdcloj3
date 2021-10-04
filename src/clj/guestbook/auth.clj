@@ -35,3 +35,15 @@
    :session/get #{:any}
    :messages/list #{:any}
    :swagger/swagger #{:any}})
+
+(defn change-password! [login old-password new-password]
+  (jdbc/with-transaction [t-conn db/*db*]
+    (let [{hashed :password} (db/get-user-for-auth* t-conn {:login login})]
+      (if (hashers/check old-password hashed)
+        (db/set-password-for-user!*
+         t-conn
+         {:login login
+          :password (hashers/derive new-password)})
+        (throw (ex-info "Old password must match!"
+                        {:guestbook/error-id ::authentication-failure
+                         :error "Passwords do not match!"}))))))
