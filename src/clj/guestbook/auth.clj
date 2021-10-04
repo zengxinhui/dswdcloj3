@@ -47,3 +47,12 @@
         (throw (ex-info "Old password must match!"
                         {:guestbook/error-id ::authentication-failure
                          :error "Passwords do not match!"}))))))
+
+(defn delete-account! [login password]
+  (jdbc/with-transaction [t-conn db/*db*]
+    (let [{hashed :password} (db/get-user-for-auth* t-conn {:login login})]
+      (if (hashers/check password hashed)
+        (db/delete-user!* t-conn {:login login})
+        (throw (ex-info "Password is incorrect!"
+                        {:guestbook/error-id ::authentication-failure
+                         :error "Password is incorrect!"}))))))
