@@ -1,5 +1,8 @@
 (ns guestbook.components
   (:require
+   [markdown.core :refer [md->html]]
+   [markdown.transformers :refer [transformer-vector]]
+   [clojure.string :as string]
    [reagent.core :as r]))
 
 (defn text-input [{val :value
@@ -52,3 +55,64 @@
                                     (-> e .-target .-value (set! "")))}]
    [:span.file-cta
     [:span.file-label label-text]]])
+
+(defn escape-html
+  "Change special characters into HTML character entities."
+  [text state]
+  (if (or (:code state) (:codeblock state))
+    [text state] ;; Don't escape code blocks!
+    [(string/escape text {\& "&amp;"
+                          \< "&lt;"
+                          \> "&gt;"
+                          \" "&quot;"
+                          \' "&#39;"})
+     state]))
+
+(defn linkify-tags
+  "Change tags into links"
+  [text state]
+  (if (or (:code state) (:codeblock state))
+    [text state]
+    [(string/replace
+      text
+      #_#"(?<=\s|^)#([-\w]+)(?=\s|$)"
+      #"(\s|^)#([-\w]+)(?=\s|$)"
+      "$1<a href=\"/tag/$2\"
+title=\"View posts tagged #$2\"
+target=\"_blank\">
+#$2
+</a>")
+     state]))
+
+(defn linkify-mentions
+  "Change mentions into links"
+  [text state]
+  (if (or (:code state) (:codeblock state))
+    [text state]
+    [(string/replace
+      text
+      #_#"@([-\w]+)(?=\s|$)"
+      #"(\s|^)@([-\w]+)(?=\s|$)"
+      "$1<a href=\"/user/$2\"
+title=\"Homepage of @$2\"
+target=\"_blank\">
+@$2
+</a>")
+     state]))
+
+(def transformers
+  (into [escape-html linkify-tags linkify-mentions] transformer-vector))
+
+(defn parse-message [message]
+  (md->html message :replacement-transformers transformers))
+
+(defn md
+  ([content]
+   [md :p {} content])
+  ([tag content]
+   [md tag {} content])
+  ([tag attrs content]
+   [tag (-> attrs
+            (assoc :dangerouslySetInnerHTML
+                   {:__html (parse-message content)})
+            (update :class (fnil conj []) "markdown"))]))
