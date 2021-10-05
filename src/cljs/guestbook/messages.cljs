@@ -5,7 +5,7 @@
    [reagent.dom :as dom]
    [re-frame.core :as rf]
    [reitit.frontend.easy :as rtfe]
-   [guestbook.components :refer [text-input textarea-input image md]]
+   [guestbook.components :refer [text-input textarea-input image md image-uploader]]
    [guestbook.validation :refer [validate-message]]))
 
 (rf/reg-event-fx
@@ -34,6 +34,26 @@
  :messages/list
  (fn [db _]
    (:messages/list db [])))
+
+(rf/reg-event-db
+ :message/save-media
+ (fn [db [_ img]]
+   (let [url (js/URL.createObjectURL img)
+         name (keyword (str "msg-" (random-uuid)))]
+     (-> db
+         (update-in [:form/fields :message] str "![](" url ")")
+         (update :message/media (fnil assoc {}) name img)
+         (update :message/urls (fnil assoc {}) url name)))))
+
+(rf/reg-event-db
+ :message/clear-media
+ (fn [db _]
+   (dissoc db :message/media :message/urls)))
+
+(rf/reg-sub
+ :message/media
+ (fn [db [_]]
+   (:message/media db)))
 
 (defn reload-messages-button []
   (let [loading? (rf/subscribe [:messages/loading?])]
@@ -197,16 +217,33 @@
  :message/send!-called-back
  (fn [_ [_ {:keys [success errors]}]]
    (if success
-     {:dispatch [:form/clear-fields]}
+     {:dispatch-n [[:form/clear-fields] [:message/clear-media]]}
      {:dispatch [:form/set-server-errors errors]})))
 
 (rf/reg-event-fx
  :message/send!
- (fn [{:keys [db]} [_ fields]]
-   {:db (dissoc db :form/server-errors)
-    :ws/send! {:message [:message/create! fields]
-               :timeout 10000
-               :callback-event [:message/send!-called-back]}}))
+ (fn [{:keys [db]} [_ fields media]]
+   (if (not-empty media)
+     {:db (dissoc db :form/server-errors)
+      :ajax/upload-media!
+      {:url "/api/my-account/media/upload"
+       :files media
+       :handler
+       (fn [response]
+         (rf/dispatch
+          [:message/send!
+           (update fields :message
+                   string/replace
+                   #"\!\[(.*)\]\((.+)\)"
+                   (fn [[old alt url]]
+                     (str "![" alt "]("
+                          (if-some [name ((:message/urls db) url)]
+                            (get response name)
+                            url) ")")))]))}}
+     {:db (dissoc db :form/server-errors)
+      :ws/send! {:message [:message/create! fields]
+                 :timeout 10000
+                 :callback-event [:message/send!-called-back]}})))
 
 (rf/reg-event-fx
  :messages/load-by-author
@@ -244,6 +281,11 @@
        [:label.label {:for :name} "Name"]
        display-name]
       [:div.field
+       [:div.control
+        [image-uploader
+         #(rf/dispatch [:message/save-media %])
+         "Insert an Image"]]]
+      [:div.field
        [:label.label {:for :message} "Message"]
        [errors-component :message]
        [textarea-input
@@ -256,5 +298,6 @@
        {:type :submit
         :disabled @(rf/subscribe [:form/validation-errors?])
         :on-click #(rf/dispatch [:message/send!
-                                 @(rf/subscribe [:form/fields])])
+                                 @(rf/subscribe [:form/fields])
+                                 @(rf/subscribe [:message/media])])
         :value "comment"}]])])
