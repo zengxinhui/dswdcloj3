@@ -7,7 +7,7 @@
 (def home-controllers
   [{:start (fn [_] (rf/dispatch [:messages/load]))}])
 
-(defn home [_]
+(defn home [{{{post :post} :query} :parameters}]
   (let [messages (rf/subscribe [:messages/list])]
     (fn []
       [:div.content>div.columns.is-centered>div.column.is-two-thirds
@@ -15,7 +15,7 @@
         [:h3 "Messages"]
         (if @(rf/subscribe [:messages/loading?])
           [messages/message-list-placeholder]
-          [messages/message-list messages])]
+          [messages/message-list messages post])]
        [:div.columns>div.column
         [messages/reload-messages-button]]
        [:div.columns>div.column

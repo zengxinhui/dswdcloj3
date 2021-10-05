@@ -65,7 +65,8 @@
     (let [{:keys [display-name login]} @(rf/subscribe [::author])]
       [:h2 display-name " <@" login ">'s Page"])))
 
-(defn author [{{{:keys [user]} :path} :parameters}]
+(defn author [{{{:keys [user]} :path
+                {:keys [post]} :query} :parameters}]
   (let [messages (rf/subscribe [:messages/list])
         author (rf/subscribe [::author])]
     (fn [{{{:keys [user]} :path} :parameters}]
@@ -84,7 +85,7 @@
              [:h3 "Posts by " display-name " <@" user ">"]
              (if @(rf/subscribe [:messages/loading?])
                [messages/message-list-placeholder]
-               [messages/message-list messages])]
+               [messages/message-list messages post])]
             (when @(rf/subscribe [::is-current-author?])
               [:div.columns>div.column
                [:h4 "New Post"]
