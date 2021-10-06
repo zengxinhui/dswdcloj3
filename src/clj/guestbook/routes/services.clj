@@ -159,7 +159,7 @@
             (fn [_]
               (->
                (response/ok)
-               (assoc :session nil)))}}]
+               (assoc :session {})))}}]
    ["/messages"
     {::auth/roles (auth/roles :messages/list)}
     ["" {:get
