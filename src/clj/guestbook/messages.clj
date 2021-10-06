@@ -1,5 +1,6 @@
 (ns guestbook.messages
   (:require
+   [conman.core :as conman]
    [guestbook.db.core :as db]
    [guestbook.validation :refer [validate-message]]))
 
@@ -22,3 +23,19 @@
 
 (defn messages-by-author [author]
   {:messages (vec (db/get-messages-by-author {:author author}))})
+
+(defn boost-message [{{:keys [display-name]} :profile
+                      :keys [login]} post-id poster]
+  (conman/with-transaction [db/*db*]
+    (db/boost-post! db/*db* {:post post-id
+                             :poster poster
+                             :user login})
+    (db/get-timeline-post db/*db* {:post post-id
+                                   :user login
+                                   :is_boost true})))
+
+(defn timeline []
+  {:messages (vec (db/get-timeline))})
+
+(defn timeline-for-poster [poster]
+  {:messages (vec (db/get-timeline-for-poster {:poster poster}))})

@@ -27,6 +27,24 @@
   {:error (str "Unrecognized websocket event type: " (pr-str id))
    :id id})
 
+(defmethod handle-message :message/boost!
+  [{:keys [?data uid session] :as message}]
+  (let [response (try
+                   (msg/boost-message (:identity session)
+                                      (:id ?data)
+                                      (:poster ?data))
+                   (catch Exception e
+                     {:errors
+                      {:server-error ["Failed to boost message!"]}}))]
+    (if (:errors response)
+      (do
+        (log/debug "Failed to boost message: " ?data)
+        response)
+      (do
+        (doseq [uid (:any @(:connected-uids socket))]
+          (send! uid [:message/add response]))
+        {:success true}))))
+
 (defmethod handle-message :message/create!
   [{:keys [?data uid session] :as message}]
   (let [response (try

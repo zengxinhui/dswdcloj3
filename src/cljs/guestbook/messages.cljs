@@ -33,7 +33,16 @@
 (rf/reg-sub
  :messages/list
  (fn [db _]
-   (:messages/list db [])))
+   (:list
+    (reduce
+     (fn [{:keys [ids list] :as acc} {:keys [id] :as msg}]
+       (if (contains? ids id)
+         acc
+         {:list (conj list msg)
+          :ids (conj ids id)}))
+     {:list []
+      :ids #{}}
+     (:messages/list db [])))))
 
 (rf/reg-event-db
  :message/save-media
@@ -55,6 +64,12 @@
  (fn [db [_]]
    (:message/media db)))
 
+(rf/reg-event-fx
+ :message/boost!
+ (fn [{:keys [db]} [_ message]]
+   {:ws/send!
+    {:message [:message/boost! (select-keys message [:id :poster])]}}))
+
 (defn reload-messages-button []
   (let [loading? (rf/subscribe [:messages/loading?])]
     [:button.button.is-info.is-fullwidth
@@ -73,30 +88,67 @@
 
 (defn message
   ([m] [message m {}])
-  ([{:keys [id timestamp message name author avatar] :as m}
+  ([{:keys [id timestamp message name author avatar boosts is_boost]
+     :or {boosts 0}
+     :as m}
     {:keys [include-link?]
      :or {include-link? true}}]
-   [:article.media
-    [:figure.media-left
-     [image (or avatar "/img/avatar-default.png") 128 128]]
-    [:div.media-content>div.content
-     [:time (.toLocaleString timestamp)]
-     [md message]
-     (when include-link?
-       [:p>a {:on-click
-              (fn [_]
-                (let [{{:keys [name]} :data
-                       {:keys [path query]} :parameters}
-                      @(rf/subscribe [:router/current-route])]
-                  (rtfe/replace-state name path (assoc query :post id)))
-                (rtfe/push-state :guestbook.routes.app/post {:post id}))}
-        "View Post"])
-     [:p " - " name
-      " <"
-      (if author
-        [:a {:href (str "/user/" author)} (str "@" author)]
-        [:span.is-italic "account not found"])
-      ">"]]]))
+   (let [{:keys [posted_at poster poster_avatar
+                 source source_avatar] :as m}
+         (if is_boost
+           m
+           (assoc m
+                  :poster author
+                  :poster_avatar avatar
+                  :posted_at timestamp))]
+     [:article.media
+      [:figure.media-left
+       [image (or avatar "/img/avatar-default.png") 128 128]]
+      [:div.media-content
+       [:div.content
+        (when is_boost
+          [:div.columns.is-vcentered.is-1.mb-0
+           [:div.column.is-narrow.pb-0
+            [image (or poster_avatar "/img/avatar-default.png") 24 24]]
+           [:div.column.is-narrow.pb-0
+            [:a {:href (str "/user/" poster "?post=" id)} poster]]
+           [:div.column.is-narrow.pb-0 "♻"]
+           [:div.column.is-narrow.pb-0
+            [image (or source_avatar "/img/avatar-default.png") 24 24]]
+           [:div.column.pb-0 #_{:style {:text-align "left"}}
+            [:div.column.is-narrow.pb-0
+             [:a {:href (str "/user/" source "?post=" id)} source]]]])
+        [:div.mb-4>time
+         (.toLocaleString posted_at)]
+        [md message]
+        [:p " - " name
+         " <"
+         (if author
+           [:a {:href (str "/user/" author)} (str "@" author)]
+           [:span.is-italic "account not found"])
+         ">"]]
+       [:nav.level
+        [:div.level-left
+         (when include-link?
+           [:button.button.level-item
+            {:class ["is-rounded"
+                     "is-small"
+                     "is-secondary"
+                     "is-outlined"]
+             :on-click
+             (fn [_]
+               (let [{{:keys [name]} :data
+                      {:keys [path query]} :parameters}
+                     @(rf/subscribe [:router/current-route])]
+                 (rtfe/replace-state name path (assoc query :post id)))
+               (rtfe/push-state :guestbook.routes.app/post {:post id}))}
+            [:i.material-icons
+             "open_in_new"]])
+         [:button.button.is-rounded.is-small.is-info.is-outlined.level-item
+          {:on-click
+           #(rf/dispatch [:message/boost! m])
+           :disabled (nil? @(rf/subscribe [:auth/user]))}
+          "♻ " boosts]]]]])))
 
 (defn msg-li [m message-id]
   (r/create-class
@@ -248,10 +300,10 @@
 (rf/reg-event-fx
  :messages/load-by-author
  (fn [{:keys [db]} [_ author]]
-   {:db (-> db
-            (assoc :messages/loading? true
-                   :messages/list nil
-                   :messages/filter {:author author}))
+   {:db (assoc db
+               :messages/loading? true
+               :messages/filter {:poster author}
+               :messages/list nil)
     :ajax/get {:url (str "/api/messages/by/" author)
                :success-path [:messages]
                :success-event [:messages/set]}}))
